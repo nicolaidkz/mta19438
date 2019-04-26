@@ -1,0 +1,6 @@
+Find frequency of buzzer/speaker and make sure it's consistent
+Remove unwanted frequencies from fourier output
+Inverse FFT
+Test auto/cross correlation to see which is better or more consistent
+Make the correlation work and get time
+Plug time into speed of sound formula to get distance
