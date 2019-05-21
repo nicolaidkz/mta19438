@@ -98,6 +98,7 @@ def distance_calc(time):
     dist = time * speed
     return dist
 
+print ("%.2f" % distance_calc(0.05) + " cm")
 
 def butter_bandpass(lowcut, highcut, fs, order=5):
     nyq = 0.5 * fs
