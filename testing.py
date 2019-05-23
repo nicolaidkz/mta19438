@@ -15,7 +15,7 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 22050
 CHUNK = 1024
-RECORD_SECONDS = 0.5
+RECORD_SECONDS = 2
 FREQ = 1700
 WAVE_OUTPUT_FILENAME = "file.wav"  # ------WE SAVE THE AUDIO INPUT TO A WAV FILE WE USE LATER----
 
@@ -88,7 +88,7 @@ def recordData():
     for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
         data = stream.read(CHUNK)
         frames.append(data)
-        if i == 2:
+        if i == 1 or i == 15:
             winsound.Beep(FREQ, 100)
     # print("finished recording")
 
@@ -136,37 +136,61 @@ def getOffset(repeats, thresh):
 
         passed = butter_bandpass_filter(audioFileArray, FREQ - 50, FREQ + 50, 11025,
                                         order=6)  # THIS Y NEEDS TO RUN TROUGH THE CORRELATION!!!!!!!
-
-        for j in passed:
-            if j > thresh:
+        p = len(passed)
+        for j in range(p):
+            if passed[j] > thresh:
                 offsetList.append(j)
                 print(str(j))
+                # plt.plot(passed, label='bandpassed')
+                # plt.ylabel('value')
+                # plt.xlabel('sample')
+                # plt.legend(loc='upper left')
+                # plt.show(block=False)
+                # plt.pause(1)
+                # plt.close()
                 break
         else:
             print("failed to detect beep")
-    for k in range(len(offsetList)):
-        offset = offset + offsetList[k]
-    offset = offset / len(offsetList)
+    offset = 0
+    for k in range(len(offsetList) - 2):
+        offset = offset + offsetList[k+2]
+    offset = offset / (len(offsetList) - 2)
     return offset
 
+def echoTest():
+    audioFileArray = recordData()
 
-def micToSpeaker(repeats, thresh, offset):
-    dists = []
-    for i in range(repeats):
-        audioFileArray = recordData()
-        passed = butter_bandpass_filter(audioFileArray, FREQ - 50, FREQ + 50, 11025,
-                                        order=6)
-        for j in passed:
-            if j > thresh:
-                dists.append(j)
-                print(str(j))
-                break
+    passed = butter_bandpass_filter(audioFileArray, FREQ - 50, FREQ + 50, 11025,
+                                    order=6)  # THIS Y NEEDS TO RUN TROUGH THE CORRELATION!!!!!!!
+    r = np.correlate(passed, passed, mode='full')
+    r = r / r.max()
+
+    peaks = peakDetect(r)
+    # for i in peaks:
+    #     print(i)
+    delay = corrDetector(peaks, 0.08, 0.4)  # change 2nd and 3rd values to what works best
+    if delay == -1:
+        print("Never went below threshLow")
+    if delay == -2:
+        print("Never went above threshHigh")
+    else:
+        delay = delay - (len(r) / 2)
+        print("delay: " + str(delay))
+        dist = timeToDist(delay, RATE, 343)
+        dist = dist / 2
+        print("distance = " + str(dist) + " meters")
 
 
-off = getOffset(100, 15)
-print("average offset = " + str(off))
-dist = timeToDist(off, RATE, 343)
-print("distance to mic = " + dist)
+def micToSpeaker():
+    off = getOffset(20, 100)
+    print("average offset = " + str(off))
+    distOff = off - 9634
+    dist = timeToDist(distOff, RATE, 343)
+    print("distance to mic = " + str(dist))
+
+# micToSpeaker()
+
+echoTest()
 
 # audioFileArray = recordData()
 #
@@ -175,40 +199,25 @@ print("distance to mic = " + dist)
 #
 # # print(y_cre)
 #
-# r = np.correlate(y_cre, y_cre, mode='full')
-# r = r / r.max()
+
+
+# plt.plot(audioFileArray, label='raw data')
+# plt.ylabel('value')
+# plt.xlabel('sample')
+# plt.legend(loc='upper left')
+# plt.show()
 #
-# peaks = peakDetect(r)
-# # for i in peaks:
-# #     print(i)
-# delay = corrDetector(peaks, 0.08, 0.10)   # change 2nd and 3rd values to what works best
-# if delay == -1:
-#     print("Never went below threshLow")
-# if delay == -2:
-#     print("Never went above threshHigh")
-# else:
-#     delay = delay - (len(r)/2)
-#     print("delay: " + str(delay))
-#     dist = timeToDist(delay, RATE, 343)
-#     print("distance = " + str(dist) + " meters")
-
-plt.plot(audioFileArray, label='raw data')
-plt.ylabel('value')
-plt.xlabel('sample')
-plt.legend(loc='upper left')
-plt.show()
-
-plt.plot(y_cre, label='bandpassed')
-plt.ylabel('value')
-plt.xlabel('sample')
-plt.legend(loc='upper left')
-plt.show()
-
-plt.plot(r, label='correlated')
-plt.ylabel('value')
-plt.xlabel('sample')
-plt.legend(loc='upper left')
-plt.show()
+# plt.plot(y_cre, label='bandpassed')
+# plt.ylabel('value')
+# plt.xlabel('sample')
+# plt.legend(loc='upper left')
+# plt.show()
+#
+# plt.plot(r, label='correlated')
+#plt.ylabel('value')
+#plt.xlabel('sample')
+#plt.legend(loc='upper left')
+#plt.show()
 
 # One_D_array = np.reshape(y_cre,(-1,2))
 # print(One_D_array)
